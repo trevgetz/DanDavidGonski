@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The World War II Military Service of Dan (David) Gonski</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --parchment:#f5edd8;
+  --parchment-mid:#ede1c4;
+  --parchment-dark:#d9c9a3;
+  --ink:#1e140a;
+  --ink-mid:#5c4422;
+  --ink-light:#9a7d52;
+  --crimson:#8b1a1a;
+  --gold:#a07820;
+  --gold-light:#c9a84c;
+  --navy:#1a2e4a;
+  --sage:#3d5a3e;
+  --sand:#c9a06a;
+  --sidebar:380px;
+}
+
+html,body{height:100%;overflow:hidden;background:var(--parchment)}
+body{font-family:'Source Serif 4',Georgia,serif;color:var(--ink);display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+header{
+  background:var(--ink);
+  color:var(--parchment);
+  padding:0 1.5rem;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  border-bottom:3px solid var(--gold);
+  position:relative;
+  z-index:1000;
+}
+.header-title{
+  display:flex;
+  align-items:baseline;
+  gap:1rem;
+}
+.header-title h1{
+  font-family:'Playfair Display',serif;
+  font-size:1.1rem;
+  font-weight:600;
+  letter-spacing:0.02em;
+  line-height:1.2;
+}
+.header-title .subtitle{
+  font-size:0.78rem;
+  color:var(--gold-light);
+  font-style:italic;
+  letter-spacing:0.06em;
+}
+.header-actions{display:flex;gap:8px;align-items:center}
+.btn{
+  font-family:'Source Serif 4',serif;
+  font-size:0.82rem;
+  padding:5px 14px;
+  border:1px solid rgba(201,168,76,0.5);
+  background:transparent;
+  color:var(--parchment);
+  cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  transition:background 0.15s;
+  letter-spacing:0.04em;
+}
+.btn:hover{background:rgba(201,168,76,0.15)}
+.btn-upload{background:var(--gold);border-color:var(--gold);color:var(--ink);font-weight:600}
+.btn-upload:hover{background:#8a6818}
+#upload-input{display:none}
+
+/* ── LAYOUT ── */
+.main{display:flex;flex:1;overflow:hidden}
+#map{flex:1;z-index:1}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar);
+  background:var(--parchment);
+  border-left:1.5px solid var(--parchment-dark);
+  display:flex;flex-direction:column;
+  overflow:hidden;flex-shrink:0;
+  z-index:100;
+}
+.sb-head{
+  padding:1rem 1.25rem 0.8rem;
+  border-bottom:1px solid var(--parchment-dark);
+  background:rgba(160,120,32,0.06);
+  flex-shrink:0;
+}
+.sb-head h2{
+  font-family:'Playfair Display',serif;
+  font-size:1rem;
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:2px;
+}
+.sb-head p{font-size:0.75rem;color:var(--ink-light);font-style:italic}
+.data-status{font-size:0.72rem;color:var(--ink-mid);background:rgba(160,120,32,0.08);border-top:1px solid var(--parchment-dark);border-bottom:1px solid var(--parchment-dark);padding:0.5rem 1rem;line-height:1.35}
+.data-status strong{color:var(--ink)}
+.data-status code{font-size:0.7rem;background:rgba(255,255,255,0.45);padding:1px 4px;border:1px solid var(--parchment-dark)}
+
+.stat-strip{display:flex;border-bottom:1px solid var(--parchment-dark);flex-shrink:0}
+.stat{flex:1;text-align:center;padding:0.45rem 0;border-right:1px solid var(--parchment-dark)}
+.stat:last-child{border-right:none}
+.stat-num{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--crimson);display:block}
+.stat-label{font-size:0.65rem;color:var(--ink-light);font-style:italic;text-transform:uppercase;letter-spacing:0.06em}
+
+.filters{
+  padding:0.5rem 1rem;
+  border-bottom:1px solid var(--parchment-dark);
+  display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;
+}
+.filter-btn{
+  font-family:'Source Serif 4',serif;
+  font-size:0.72rem;
+  padding:3px 10px;
+  border:1px solid var(--parchment-dark);
+  background:transparent;
+  color:var(--ink-mid);
+  cursor:pointer;
+  transition:all 0.15s;
+  letter-spacing:0.02em;
+}
+.filter-btn.active{background:var(--ink);color:var(--parchment);border-color:var(--ink)}
+
+.events-list{overflow-y:auto;flex:1;padding:0.4rem 0}
+.events-list::-webkit-scrollbar{width:4px}
+.events-list::-webkit-scrollbar-track{background:var(--parchment-dark)}
+.events-list::-webkit-scrollbar-thumb{background:var(--sand)}
+
+.event-item{
+  padding:0.65rem 1.25rem;
+  border-bottom:1px solid rgba(201,168,76,0.25);
+  cursor:pointer;
+  transition:background 0.12s;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.event-item:hover{background:rgba(160,120,32,0.07)}
+.event-item.active{
+  background:rgba(139,26,26,0.07);
+  border-left:3px solid var(--crimson);
+  padding-left:calc(1.25rem - 3px);
+}
+.event-num{
+  font-family:'Playfair Display',serif;
+  font-size:0.72rem;
+  color:var(--crimson);
+  min-width:18px;padding-top:2px;
+}
+.event-body{flex:1;min-width:0}
+.event-date{font-size:0.7rem;color:var(--ink-light);font-style:italic;margin-bottom:1px;letter-spacing:0.02em}
+.event-title{font-size:0.87rem;color:var(--ink);line-height:1.4}
+.event-loc{font-size:0.72rem;color:var(--ink-mid);margin-top:2px;display:flex;align-items:center;gap:4px}
+.loc-dot{width:6px;height:6px;border-radius:50%;background:var(--crimson);flex-shrink:0}
+.media-badge{
+  display:inline-block;font-size:0.62rem;
+  padding:1px 6px;margin-left:5px;
+  background:rgba(160,120,32,0.12);
+  color:var(--gold);
+  border:1px solid var(--gold-light);
+  vertical-align:middle;
+  font-style:normal;
+  letter-spacing:0.04em;
+}
+
+/* ── DETAIL PANEL ── */
+.detail-panel{
+  position:absolute;
+  bottom:20px;left:16px;
+  width:360px;
+  background:var(--parchment);
+  border:1px solid var(--parchment-dark);
+  box-shadow:3px 4px 18px rgba(30,20,10,0.22);
+  z-index:1000;
+  display:none;
+  max-height:calc(100vh - 120px);
+  overflow:hidden;
+  flex-direction:column;
+}
+.detail-panel.visible{display:flex}
+.detail-hdr{
+  background:var(--ink);
+  color:var(--parchment);
+  padding:0.6rem 1rem;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;
+}
+.detail-hdr h3{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:600}
+.detail-hdr .transport-icon{font-size:1rem;margin-right:6px;opacity:0.8}
+.detail-close{background:none;border:none;color:var(--parchment);cursor:pointer;font-size:1rem;opacity:0.7;padding:0;line-height:1}
+.detail-close:hover{opacity:1}
+.detail-body{padding:0.9rem 1rem 1rem;overflow-y:auto;flex:1}
+.detail-date{font-size:0.78rem;color:var(--ink-light);font-style:italic;margin-bottom:0.6rem}
+.detail-event{font-size:0.92rem;color:var(--ink);line-height:1.6;margin-bottom:0.7rem}
+.detail-text-block{
+  background:rgba(160,120,32,0.07);
+  border-left:3px solid var(--gold);
+  padding:0.6rem 0.8rem;
+  font-size:0.85rem;
+  color:var(--ink-mid);
+  line-height:1.6;
+  font-style:italic;
+  margin-bottom:0.7rem;
+}
+.detail-photo-note{
+  font-size:0.78rem;
+  color:var(--ink-light);
+  padding:0.5rem 0.7rem;
+  background:rgba(160,120,32,0.05);
+  border:1px dashed var(--parchment-dark);
+  margin-bottom:0.7rem;
+  text-align:center;
+  font-style:italic;
+}
+.detail-photo{
+  margin-bottom:0.8rem;
+}
+.detail-photo img{
+  width:100%;
+  max-height:360px;
+  object-fit:contain;
+  border:1px solid var(--parchment-dark);
+  display:block;
+  background:#fffaf0;
+}
+.detail-photo-caption{
+  font-size:0.75rem;
+  color:var(--ink-light);
+  margin-top:4px;
+  font-style:italic;
+  line-height:1.35;
+}
+.photo-help{
+  font-size:0.76rem;
+  color:var(--ink-light);
+  font-style:italic;
+  line-height:1.45;
+  margin-top:0.45rem;
+}
+.detail-source{
+  font-size:0.72rem;color:var(--ink-light);font-style:italic;
+  border-top:1px solid var(--parchment-dark);
+  padding-top:0.5rem;margin-top:0.4rem;
+}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--parchment);
+  padding:8px 20px;font-family:'Source Serif 4',serif;
+  font-style:italic;font-size:0.88rem;z-index:9999;
+  opacity:0;transition:opacity 0.3s;pointer-events:none;
+}
+.toast.show{opacity:1}
+
+/* leaflet popup overrides */
+.leaflet-popup-content-wrapper{
+  background:var(--parchment) !important;
+  border:1px solid var(--parchment-dark) !important;
+  border-radius:0 !important;
+  box-shadow:2px 3px 10px rgba(30,20,10,0.2) !important;
+  font-family:'Source Serif 4',serif !important;
+}
+.leaflet-popup-tip{background:var(--parchment) !important}
+.leaflet-popup-content{margin:10px 14px !important;font-size:0.85rem !important;color:var(--ink) !important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>The World War II Military Service of Dan (David) Gonski</h1>
+    <span class="subtitle">1936 – 1945</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn" id="toggle-sb">&#9776; Timeline</button>
+    <button class="btn" onclick="showPhotoHelp()">Photo Help</button>
+    <button class="btn btn-upload" onclick="document.getElementById('upload-input').click()">
+      &#8593; Load Different Spreadsheet
+    </button>
+    <input type="file" id="upload-input" accept=".xlsx,.xls,.csv"/>
+  </div>
+</header>
+
+<div class="main">
+  <div id="map"></div>
+
+
+  <div class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <h2 id="sb-title">Dan Gonski — Service Record</h2>
+      <p id="sb-sub">Loading…</p>
+    </div>
+    <div class="data-status" id="data-status">Looking for <code>data.csv</code>...</div>
+    <div class="stat-strip" id="stat-strip"></div>
+    <div class="filters" id="filters"></div>
+    <div class="events-list" id="events-list">
+      <div style="padding:2rem 1.25rem;text-align:center;color:var(--ink-light);font-style:italic">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-hdr">
+    <h3><span class="transport-icon" id="dp-icon"></span><span id="dp-loc">–</span></h3>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-date" id="dp-date"></div>
+    <div class="detail-event" id="dp-event"></div>
+    <div id="dp-media"></div>
+    <div class="detail-source" id="dp-source"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── COORDINATES DATABASE ──────────────────────────────────────────────────────
+const COORDS = {
+  "south africa": {lat:-26.2,lng:28.04,label:"South Africa (Johannesburg)"},
+  "durban":       {lat:-29.85,lng:31.02,label:"Durban, South Africa"},
+  "suez":         {lat:29.97,lng:32.54,label:"Suez, Egypt"},
+  "egypt":        {lat:30.06,lng:31.24,label:"Egypt (Cairo)"},
+  "cairo":        {lat:30.06,lng:31.24,label:"Cairo, Egypt"},
+  "alexandria":   {lat:31.20,lng:29.92,label:"Alexandria, Egypt"},
+  "libya":        {lat:32.5,lng:13.2,label:"Libya"},
+  "sidi rezegh":  {lat:31.65,lng:24.0,label:"Sidi Rezegh, Libya"},
+  "north africa": {lat:30.0,lng:20.0,label:"North Africa"},
+  "pahlavi":      {lat:37.47,lng:49.43,label:"Pahlavi (Bandar Anzali), Iran"},
+  "iran":         {lat:32.0,lng:53.0,label:"Iran (Persia)"},
+  "iraq":         {lat:35.47,lng:44.39,label:"Kirkuk, Iraq"},
+  "kirkuk":       {lat:35.47,lng:44.39,label:"Kirkuk, Iraq"},
+  "palestine":    {lat:31.77,lng:35.23,label:"Palestine (Jerusalem)"},
+  "italy":        {lat:41.9,lng:12.5,label:"Italy"},
+  "taranto":      {lat:40.47,lng:17.24,label:"Taranto, Italy"},
+  "monte cassino":{lat:41.49,lng:13.83,label:"Monte Cassino, Italy"},
+  "faenza":       {lat:44.29,lng:11.88,label:"Faenza, Italy"},
+};
+
+function geoFromPlace(place, event){
+  if(!place) return null;
+  const p = place.toLowerCase();
+  const e = (event||'').toLowerCase();
+  // direct lookups
+  for(const [k,v] of Object.entries(COORDS)){
+    if(p.includes(k)||e.includes(k)) return {...v};
+  }
+  return null;
+}
+
+// Detect transport type from place column
+function transportType(place){
+  if(!place) return 'none';
+  const p = place.toLowerCase();
+  if(p.includes('air ') || p.includes('by air') || p.includes('emplaned') || p.includes('aeroplane')) return 'air';
+  if(p.includes('by sea') || p.includes('sea from') || p.includes('sea to') || p.includes('ship') || p.includes('embarked')) return 'sea';
+  if(p.includes('ground ') || p.includes('march') || p.includes('road') || p.includes('land')) return 'land';
+  return 'none';
+}
+
+function transportIcon(type){
+  if(type==='air') return '✈';
+  if(type==='sea') return '⚓';
+  if(type==='land') return '⚙';
+  return '';
+}
+
+// Extract a clean display location from the place column
+function displayPlace(place){
+  if(!place) return '';
+  const p = place.toLowerCase();
+  // If it's a transit entry, extract destination
+  const airMatch = place.match(/air\s+.+?\s+to\s+(.+)/i);
+  if(airMatch) return airMatch[1].trim();
+  const seaMatch = place.match(/by sea (?:from .+? )?to (.+)/i);
+  if(seaMatch) return seaMatch[1].trim();
+  const groundMatch = place.match(/ground\s+.+?\s+to\s+(.+)/i);
+  if(groundMatch) return groundMatch[1].trim();
+  const marchMatch = place.match(/march to (.+)/i);
+  if(marchMatch) return marchMatch[1].trim();
+  return place;
+}
+
+// ── REGION INFERENCE ─────────────────────────────────────────────────────────
+function inferRegion(place, event){
+  const t = ((place||'')+(event||'')).toLowerCase();
+  if(t.includes('south africa')||t.includes('durban')) return 'South Africa';
+  if(t.includes('north africa')||t.includes('egypt')||t.includes('libya')||t.includes('sidi')||t.includes('suez')||t.includes('cairo')||t.includes('alexandria')) return 'North Africa & Egypt';
+  if(t.includes('iraq')||t.includes('kirkuk')||t.includes('iran')||t.includes('pahlavi')||t.includes('persia')||t.includes('middle east')) return 'Iraq & Persia';
+  if(t.includes('palestine')) return 'Palestine';
+  if(t.includes('italy')||t.includes('taranto')||t.includes('cassino')||t.includes('faenza')||t.includes('cmf')) return 'Italy';
+  return 'Other';
+}
+
+const REGION_COLORS = {
+  'South Africa':     '#3d5a3e',
+  'North Africa & Egypt': '#a07820',
+  'Iraq & Persia':    '#8b1a1a',
+  'Palestine':        '#4a3a8a',
+  'Italy':            '#1a3a5a',
+  'Other':            '#666',
+};
+
+// ── DATE FORMAT ───────────────────────────────────────────────────────────────
+function parseDate(d){
+  if(!d) return null;
+  if(d instanceof Date && !isNaN(d)) return d;
+  const s = String(d).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m){
+    const y = +m[1];
+    // fix obvious typo years (2041, 2044 → 1941, 1944)
+    const fixedY = y > 1950 ? y - 100 : y;
+    return new Date(fixedY, +m[2]-1, +m[3]);
+  }
+  return null;
+}
+function fmtDate(d){
+  if(!d) return '';
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+function escapeHtml(value){
+  return String(value || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function cleanPath(value){
+  const v = String(value || '').trim();
+  if(!v || v.toLowerCase()==='nan') return '';
+  return v.replace(/^\.\//,'');
+}
+
+// ── MAP INIT ─────────────────────────────────────────────────────────────────
+let map, markersGroup=null, pathLayers=[];
+let allEvents=[], activeFilter='All', activeIdx=null;
+
+// Put your CSV file in the same GitHub repository folder as index.html.
+// The app will try several common names automatically when the page opens.
+const DEFAULT_DATA_FILES = ['data.csv','Data.csv','dan_gonski_data.csv','dan-gonski-data.csv','service_record.csv','Service Record.csv'];
+
+function setSubtitleStatus(text){
+  const el = document.getElementById('sb-sub');
+  if(el) el.textContent = text;
+}
+function setDataStatus(html){
+  const el = document.getElementById('data-status');
+  if(el) el.innerHTML = html;
+}
+
+function initMap(){
+  map = L.map('map',{center:[20,35],zoom:4,zoomControl:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{
+    attribution:'© CartoDB',maxZoom:18
+  }).addTo(map);
+  // Light label overlay
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{
+    attribution:'',maxZoom:18,pane:'shadowPane'
+  }).addTo(map);
+}
+
+// ── PROCESS DATA ─────────────────────────────────────────────────────────────
+function processRows(rows, title, subtitle){
+  allEvents = [];
+  rows.forEach((row,i)=>{
+    // Flexible column name matching (supports both the known format and user uploads)
+    const dateRaw  = row['date'] || row['Date'] || row['DATE'] || row[Object.keys(row)[0]];
+    const place    = String(row['place']    || row['Place']    || row['Location'] || row[Object.keys(row)[1]] || '').trim();
+    const event    = String(row['event']    || row['Event']    || row['col_c']    || row[Object.keys(row)[2]] || '').trim();
+    const mediaType= String(row['media_type']||row['Media Type']||row['col_d']   || row[Object.keys(row)[3]] || '').trim();
+    const mediaE   = String(row['media_e']  || row['Media E']  || row['col_e']   || row[Object.keys(row)[4]] || '').trim();
+    const mediaF   = String(row['media_f']  || row['Media F']  || row['col_f']   || row[Object.keys(row)[5]] || '').trim();
+    const source   = String(row['source']   || row['Source']   || row[Object.keys(row)[6]] || '').trim();
+    const photo    = cleanPath(row['photo'] || row['Photo'] || row['image'] || row['Image'] || row['photo_url'] || row['Photo URL'] || row['Photo Url'] || row['image_url'] || row['Image URL'] || '');
+    const photoCaption = String(row['photo_caption'] || row['Photo Caption'] || row['caption'] || row['Caption'] || '').trim();
+
+    if(!event || event==='nan') return;
+
+    const date   = parseDate(dateRaw);
+    const disp   = displayPlace(place);
+    const coords = geoFromPlace(place, event);
+    const region = inferRegion(place, event);
+    const transport = transportType(place);
+    const textContent = mediaE!=='nan'?mediaE : mediaF!=='nan'?mediaF:'';
+    const hasPhoto = mediaType.toLowerCase().includes('photo') || !!photo;
+    const hasText  = mediaType.toLowerCase().includes('text');
+
+    allEvents.push({
+      idx:i, date, dateStr:fmtDate(date), place, displayPlace:disp,
+      event, source:source!=='nan'?source:'',
+      mediaType, textContent:textContent!=='nan'?textContent:'',
+      photo, photoCaption:photoCaption!=='nan'?photoCaption:'',
+      hasPhoto, hasText, coords, region, transport
+    });
+  });
+
+  allEvents.sort((a,b)=>{
+    if(!a.date) return 1; if(!b.date) return -1;
+    return a.date-b.date;
+  });
+  allEvents.forEach((e,i)=>e.num=i+1);
+
+  document.getElementById('sb-title').textContent = title||'Service Record';
+  document.getElementById('sb-sub').textContent   = subtitle||`${allEvents.length} events`;
+
+  renderStats(); renderFilters(); renderSidebar(); renderMap();
+}
+
+// ── RENDER STATS ─────────────────────────────────────────────────────────────
+function renderStats(){
+  const regions = [...new Set(allEvents.map(e=>e.region))];
+  const mapped  = allEvents.filter(e=>e.coords).length;
+  document.getElementById('stat-strip').innerHTML=`
+    <div class="stat"><span class="stat-num">${allEvents.length}</span><span class="stat-label">Events</span></div>
+    <div class="stat"><span class="stat-num">${regions.length}</span><span class="stat-label">Theatres</span></div>
+    <div class="stat"><span class="stat-num">${mapped}</span><span class="stat-label">Mapped</span></div>
+  `;
+}
+
+// ── RENDER FILTERS ────────────────────────────────────────────────────────────
+function renderFilters(){
+  const regions = ['All',...new Set(allEvents.map(e=>e.region))];
+  document.getElementById('filters').innerHTML = regions.map(r=>`
+    <button class="filter-btn ${activeFilter===r?'active':''}" onclick="setFilter('${r}')">${r}</button>
+  `).join('');
+}
+function setFilter(r){ activeFilter=r; renderFilters(); renderSidebar(); renderMap(); }
+
+// ── RENDER SIDEBAR ────────────────────────────────────────────────────────────
+function renderSidebar(){
+  const filtered = activeFilter==='All' ? allEvents : allEvents.filter(e=>e.region===activeFilter);
+  const list = document.getElementById('events-list');
+  if(!filtered.length){ list.innerHTML='<div style="padding:2rem 1.25rem;text-align:center;color:var(--ink-light);font-style:italic">No events for this filter.</div>'; return; }
+  list.innerHTML = filtered.map(e=>{
+    const icon = e.transport!=='none'?`<span style="font-size:0.8rem;margin-right:3px">${transportIcon(e.transport)}</span>`:'';
+    return `
+    <div class="event-item ${activeIdx===e.idx?'active':''}" onclick="selectEvent(${e.idx})" id="ev-${e.idx}">
+      <div class="event-num">${e.num}</div>
+      <div class="event-body">
+        <div class="event-date">${e.dateStr||'Date unknown'}</div>
+        <div class="event-title">${icon}${e.event.length>80?e.event.slice(0,80)+'…':e.event}</div>
+        ${e.displayPlace?`<div class="event-loc"><div class="loc-dot"></div>${e.displayPlace}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER MAP ────────────────────────────────────────────────────────────────
+function renderMap(){
+  // Clear existing
+  if(markersGroup){ map.removeLayer(markersGroup); markersGroup=null; }
+  pathLayers.forEach(l=>map.removeLayer(l)); pathLayers=[];
+
+  const filtered = activeFilter==='All' ? allEvents : allEvents.filter(e=>e.region===activeFilter);
+  markersGroup = L.layerGroup();
+
+  // Draw route segments between consecutive located events
+  const located = filtered.filter(e=>e.coords);
+  for(let i=0;i<located.length-1;i++){
+    const a=located[i], b=located[i+1];
+    // determine transport of segment — use b's transport (it's the arrival)
+    const ttype = b.transport!=='none' ? b.transport : 'none';
+    let color='#8b1a1a', dash='8,6', weight=1.8;
+    if(ttype==='land'){color='#3d5a3e';dash='none';weight=2}
+    else if(ttype==='air'){color='#1a2e4a';dash='4,4';weight=1.6}
+    // Draw geodesic-style (curved) line for sea routes
+    const latlngs=[[a.coords.lat,a.coords.lng],[b.coords.lat,b.coords.lng]];
+    const opts={color,weight,opacity:0.6,dashArray:dash==='none'?null:dash};
+    const line = L.polyline(latlngs,opts);
+    line.addTo(map); pathLayers.push(line);
+  }
+
+  // Place markers
+  const seen={};
+  located.forEach(e=>{
+    const {lat,lng,label}=e.coords;
+    const key=`${lat.toFixed(2)},${lng.toFixed(2)}`;
+    const color=REGION_COLORS[e.region]||'#666';
+    const r = seen[key] ? 5 : 7;
+    if(!seen[key]){
+      const marker = L.circleMarker([lat,lng],{radius:r,fillColor:color,color:'white',weight:2,fillOpacity:1});
+      marker.bindPopup(`<strong style="font-family:'Playfair Display',serif">${label}</strong><br><em style="font-size:0.78rem;color:#9a7d52">${e.region}</em>`);
+      marker.on('click',()=>selectEvent(e.idx));
+      markersGroup.addLayer(marker);
+      seen[key]=true;
+    }
+  });
+  markersGroup.addTo(map);
+
+  // Fit bounds
+  if(located.length>0){
+    const lats=located.map(e=>e.coords.lat), lngs=located.map(e=>e.coords.lng);
+    map.fitBounds([[Math.min(...lats)-4,Math.min(...lngs)-5],[Math.max(...lats)+4,Math.max(...lngs)+5]],{padding:[40,40]});
+  }
+}
+
+// ── SELECT EVENT ─────────────────────────────────────────────────────────────
+function selectEvent(idx){
+  activeIdx=idx;
+  const e=allEvents.find(ev=>ev.idx===idx);
+  if(!e) return;
+
+  // Update sidebar highlight
+  document.querySelectorAll('.event-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById(`ev-${idx}`);
+  if(el){ el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+
+  // Populate detail panel
+  document.getElementById('dp-icon').textContent = e.transport!=='none' ? transportIcon(e.transport)+' ' : '';
+  document.getElementById('dp-loc').textContent  = e.displayPlace || e.region;
+  document.getElementById('dp-date').textContent = e.dateStr||'Date unknown';
+  document.getElementById('dp-event').textContent= e.event;
+  document.getElementById('dp-source').textContent = e.source ? `Source: ${e.source}` : '';
+
+  // Media content
+  const media = document.getElementById('dp-media');
+  let html='';
+  if(e.photo){
+    html+=`<div class="detail-photo">
+      <img src="${escapeHtml(e.photo)}" alt="${escapeHtml(e.photoCaption || e.event)}" onerror="tryImageFolderCase(this)">
+      ${e.photoCaption ? `<div class="detail-photo-caption">${escapeHtml(e.photoCaption)}</div>` : ''}
+    </div>`;
+  } else if(e.hasPhoto){
+    html+=`<div class="detail-photo-note">Photograph listed for this event. Add its file path in the spreadsheet's <strong>photo</strong> column, such as <code>images/monte-cassino.jpg</code>.</div>`;
+  }
+  if(e.textContent && e.textContent!=='nan'){
+    html+=`<div class="detail-text-block">${escapeHtml(e.textContent)}</div>`;
+  }
+  media.innerHTML=html;
+
+  document.getElementById('detail-panel').classList.add('visible');
+
+  if(e.coords){
+    map.flyTo([e.coords.lat,e.coords.lng],Math.max(map.getZoom(),5),{duration:1});
+  }
+}
+
+function closeDetail(){
+  document.getElementById('detail-panel').classList.remove('visible');
+  activeIdx=null;
+  document.querySelectorAll('.event-item').forEach(el=>el.classList.remove('active'));
+}
+
+// ── PHOTO HELP ───────────────────────────────────────────────────────────────
+function showPhotoHelp(){
+  alert('To make photos visible to everyone:\n\n1. In GitHub, create a folder named images.\n2. Upload your photo files into that folder.\n3. In your spreadsheet, add a column named photo.\n4. Type the path, for example: images/monte-cassino.jpg\n5. Optional: add a photo_caption column.\n6. Click Load Spreadsheet on this page.');
+}
+
+// ── IMAGE PATH FALLBACK ──────────────────────────────────────────────────────
+function tryImageFolderCase(img){
+  const src = img.getAttribute('src') || '';
+  if(!img.dataset.triedCase){
+    img.dataset.triedCase = '1';
+    if(src.startsWith('images/')){ img.src = 'Images/' + src.slice('images/'.length); return; }
+    if(src.startsWith('Images/')){ img.src = 'images/' + src.slice('Images/'.length); return; }
+  }
+  img.style.display='none';
+  const note = document.createElement('div');
+  note.className='detail-photo-note';
+  note.innerHTML = `Image file not found: <code>${escapeHtml(src)}</code><br>Check spelling, spaces, capitalization, and that the file is committed to GitHub.`;
+  img.parentNode.appendChild(note);
+}
+
+// ── LOAD SPREADSHEET ─────────────────────────────────────────────────────────
+function readWorkbookAndProcess(arrayBuffer, fileName, loadedHow){
+  const wb=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  if(!ws) throw new Error('No worksheet found');
+  const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+  const validRows=rows.filter(r=>Object.values(r).some(v=>String(v).trim()&&String(v).trim()!=='NaN'));
+  if(!validRows.length) throw new Error('Spreadsheet had no readable rows');
+  const title=(fileName || 'Service Record').replace(/\.[^.]+$/,'').replace(/_/g,' ');
+  processRows(validRows, title, `${validRows.length} events · ${loadedHow}`);
+  setDataStatus(`<strong>Data source:</strong> <code>${escapeHtml(fileName)}</code><br>Loaded ${validRows.length} rows. Photo paths should look like <code>Images/photo-name.jpg</code>.`);
+  showToast(`Loaded ${validRows.length} events from "${fileName}"`);
+}
+
+async function tryFetchDataFile(fileName){
+  const url = encodeURI(fileName) + '?v=' + Date.now();
+  const response = await fetch(url, {cache:'no-store'});
+  if(!response.ok) throw new Error(`${fileName}: ${response.status} ${response.statusText}`);
+  const arrayBuffer = await response.arrayBuffer();
+  readWorkbookAndProcess(arrayBuffer, fileName, `loaded automatically from ${fileName}`);
+}
+
+async function loadDefaultCsv(){
+  const failures=[];
+  for(const fileName of DEFAULT_DATA_FILES){
+    try{
+      setSubtitleStatus(`Looking for ${fileName} in this GitHub folder…`);
+      setDataStatus(`<strong>Looking for data:</strong> trying <code>${escapeHtml(fileName)}</code>...`);
+      await tryFetchDataFile(fileName);
+      return;
+    }catch(err){
+      failures.push(err.message || String(err));
+    }
+  }
+  processRows(DAN_GONSKI_DATA,
+    'The World War II Military Service of Dan (David) Gonski',
+    'Built-in data loaded. Your GitHub CSV was not found automatically.');
+  setDataStatus(`<strong>CSV not found automatically.</strong><br>Put <code>data.csv</code> in the same GitHub folder as <code>index.html</code>, then wait for GitHub Pages to finish deploying. You can also click <strong>Load Spreadsheet</strong> and choose the CSV manually.<br><br>Tried: <code>${DEFAULT_DATA_FILES.map(escapeHtml).join('</code>, <code>')}</code>`);
+}
+
+document.getElementById('upload-input').addEventListener('change',function(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      readWorkbookAndProcess(ev.target.result, file.name, `loaded manually from ${file.name}`);
+    }catch(err){
+      showToast('Could not read file — please use .xlsx or .csv format.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  this.value='';
+});
+
+// ── SIDEBAR TOGGLE ────────────────────────────────────────────────────────────
+document.getElementById('toggle-sb').addEventListener('click',function(){
+  const sb=document.getElementById('sidebar');
+  const hidden=sb.style.display==='none';
+  sb.style.display=hidden?'':'none';
+  setTimeout(()=>map.invalidateSize(),200);
+});
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── HARDCODED DATA (Dan Gonski) ───────────────────────────────────────────────
+// For permanent public images, use a spreadsheet with columns named:
+// date, place, event, media_type, media_e, media_f, source, photo, photo_caption
+// Put image paths in the photo column, for example: images/monte-cassino.jpg
+const DAN_GONSKI_DATA = [
+  {date:'1936-07-01',place:'South Africa',event:'Enlisted / served as Private (Pte), Rand Light Infantry (RLI)',media_type:'photograph',media_e:'',media_f:'',source:'Service statement listing previous service: "1.7.36 - 1.12.37 : Pte RLI" [1], [2]'},
+  {date:'1937-12-01',place:'South Africa',event:'Promoted / served as Corporal (Cpl), RLI',media_type:'photograph',media_e:'',media_f:'',source:'"1.12.37 - 1.11.38 : Cpl" [1], [2]'},
+  {date:'1938-05-05',place:'South Africa',event:'P1 Sergeants Course',media_type:'',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1938-11-01',place:'South Africa',event:'Promoted / served as Sergeant (Sgt), RLI',media_type:'photograph',media_e:'',media_f:'',source:'"1.11.38 - 1.3.39 : Sgt" [1], [2]'},
+  {date:'1939-03-01',place:'South Africa',event:'Appointed Acting Company Quartermaster‑Sergeant (A/CQMS), RLI',media_type:'',media_e:'',media_f:'',source:'"1.3.39 - 8.12.39 : A/CQMS RLI" [1], [2]'},
+  {date:'1939-05-08',place:'South Africa',event:'Bren Gun and Anti-Tank Instructor course',media_type:'photograph',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1939-12-09',place:'South Africa',event:'Commissioned 2nd Lieutenant',media_type:'photograph',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1940-03-11',place:'South Africa',event:'2nd Lieutenant course',media_type:'',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1940-08-06',place:'South Africa',event:'Vickers gun instructor',media_type:'',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1941-02-24',place:'South africa',event:'Promoted to acting Captain',media_type:'',media_e:'',media_f:'',source:'Rank notation: T/Captain appears on 1944 service form'},
+  {date:'1941-04-22',place:'South Africa',event:'Lt-Captain course',media_type:'',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1941-10-09',place:'Durban, South Africa',event:'Departs South Africa to Middle East by sea',media_type:'photograph',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1941-10-21',place:'Arrive Suez',event:'Disembarks in Suez',media_type:'photograph',media_e:'',media_f:'',source:'"SS DUCHESS OF BEDFORD passing through the Suez Canal after delivering troops to Egypt, 5 October 1940." Keating, Geoffrey John / © IWM E 697'},
+  {date:'1941-10-28',place:'Alexandria',event:'Posted to 2nd Brigade Headquarters',media_type:'',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1941-10-31',place:'Sidi Rezegh',event:'Posted to Regiment President Steyn',media_type:'',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1941-11-23',place:'Sidi Rezegh',event:'Battle of Sidi Rezegh',media_type:'photograph',media_e:'',media_f:'',source:'https://samilhistory.com/2016/11/23/sidi-rezegh-south-african-blood-helps-turn-the-tide-in-north-africa/'},
+  {date:'1941-11-23',place:'Sidi Rezegh',event:'Approximate date of soap incident',media_type:'Text pop-up and photograph',media_e:'',media_f:'"As I remember the story, my grandmother had given him a special soap, one that could be used with the salt water showers available on the troop ship. When he landed, this soap was in his backpack. During Sidi Rezegh, probably, Dan felt a searing pain in his back. He turned around and saw a German soldier looking surprised at him. The German had stabbed him with his bayonet, but had struck the soap, which had deflected the bayonet. The German soldier smiled at him, apparently amused, and then raised his hands in surrender."',source:'Family record'},
+  {date:'1942-01-15',place:'Sidi Rezegh',event:'Ceases to be attached to 1 SA Inf Brigade',media_type:'',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1942-01-27',place:'Alexandria',event:'Admitted to Hospital \'Ithaca\' on X2 List 6',media_type:'',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1942-03-23',place:'Alexandria',event:'Seconded to British Military Mission (BMM) to Polish forces',media_type:'Text pop-up',media_e:'"Dan was attached to the 2nd Polish Corps. These were men who had been captured by the Soviets during their stab-in-the-back invasion of Poland during the German blitzkrieg in September 1939. But after Operation Barbarossa, the German invasion of the Soviet Union in June 1940, British Prime Minister Winston Churchill reached an agreement with the Polish government-in-exile to free Polish prisoners. These men, led by General Władysław Anders, became known as Anders\' Army. They were to join the British forces to fight in North Africa and Italy."',media_f:'',source:'DD 732'},
+  {date:'1942-09-16',place:'Pahlavi, Iran',event:'Arrived in Persia & Iraq Command (theatre)',media_type:'photograph',media_e:'',media_f:'',source:'"Date arrived in what is now Persia & Iraq Command 16 Sept 1942" [1]'},
+  {date:'1942-11-16',place:'Kirkuk',event:'Promoted to Temporary Major',media_type:'photograph',media_e:'',media_f:'',source:'Officers\' record entries: "A - MAJOR Date 16 NOV 1942" and "T - MAJOR Date 16 DEC 1942" [1]'},
+  {date:'1943-06-01',place:'Ground Kirkuk to Palestine',event:'Posted to Palestine',media_type:'',media_e:'',media_f:'',source:'Records'},
+  {date:'1943-08-10',place:'Palestine',event:'Posted to 26 BLU (26th British Liaison unit) attached 2 Polish Corps',media_type:'photograph',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1943-08-30',place:'Cairo',event:'Attended XVI Course Officers Wing Middle East Theatre Command',media_type:'Text pop-up',media_e:'"Results: Application - A. Administrative Knowledge - A. Administrative Ability - A."',media_f:'',source:'DD 732'},
+  {date:'1943-09-01',place:'Palestine',event:'Permanently promoted to rank of Captain',media_type:'photograph',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1943-12-15',place:'Air Cairo to South Africa',event:'Granted leave, emplaned to Cairo to South Africa',media_type:'',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1943-12-18',place:'South Africa',event:'Arrives in South Africa by air from Middle East',media_type:'',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1943-12-22',place:'South Africa',event:'Placed on Marriage establishment, changes next-of-kin',media_type:'photograph',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1944-02-05',place:'Air South Africa to Cairo',event:'Leaves South Africa by air for Middle East',media_type:'',media_e:'',media_f:'',source:'P1/10839/1'},
+  {date:'1944-03-01',place:'By sea to Taranto, Italy',event:'Arrives in Italy with 2 Polish Corps',media_type:'photograph',media_e:'',media_f:'',source:'Records'},
+  {date:'1944-03-24',place:'Taranto, Italy',event:'Awarded the MBE',media_type:'photograph',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1944-03-24',place:'Taranto, Italy',event:'Awarded the Oak Leaf',media_type:'photograph',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1944-04-01',place:'March to Monte Cassino, Italy',event:'Deployed to Monte Cassino front',media_type:'',media_e:'',media_f:'',source:''},
+  {date:'1944-04-01',place:'Monte Cassino, Italy',event:'Approximate date of bomb incident',media_type:'Text pop-up',media_e:'One day, it appears, my grandfather and his batman (servant) were hiding in a bunker when a bomb dropped nearby. The bomb, fortunately, did not go off. The bomb disposal unit came, and carefully took the bomb apart. But there was no detonator inside. In its place was a note that said "we also fight the Nazis" — apparently left by a German anti-Nazi worker in a munitions factory.',media_f:'',source:'Family record'},
+  {date:'1944-05-17',place:'Monte Cassino, Italy',event:'Major Polish assault at Monte Cassino',media_type:'photograph',media_e:'',media_f:'',source:'https://www.historyisnowmagazine.com/blog/2013/10/12/from-the-steppes-of-russia-to-monte-cassino-the-brave-history-of-the-polish-2nd-corps'},
+  {date:'1944-11-16',place:'Faenza, Italy',event:'Granted war rank of Major',media_type:'photograph',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1945-08-14',place:'By sea from Italy to Suez',event:'Cessation of secondment to UK forces. Passing through Egypt, meets with his brother, Alec.',media_type:'text',media_e:'"Allegedly, the two brothers gave a ride to two young Polish female soldiers – probably nurses. The women proceeded to discuss the two men and their various attributes, totally unaware that Jack and Grampa understood every word. As my mother writes, \'they were quite embarrassed at journey\'s end.\'"',media_f:'',source:'DD 732'},
+  {date:'1945-09-13',place:'By sea from Suez to South Africa',event:'Embarked Suez for Demobilization',media_type:'',media_e:'',media_f:'',source:''},
+  {date:'1945-10-09',place:'South Africa',event:'Relinquishes appointment as GSO II 26 BLU',media_type:'',media_e:'',media_f:'',source:'DD 732'},
+  {date:'1945-10-25',place:'South Africa',event:'Date of discharge (partial demobilisation); awarded Colonel rank',media_type:'photograph',media_e:'',media_f:'',source:'"Date of Discharge: 25.10.45." and "Date record returned O. i/c War Records 4.10.1945" (demob. documents) [3], [4]'},
+];
+
+// ── BOOT ─────────────────────────────────────────────────────────────────────
+initMap();
+loadDefaultCsv();
+</script>
+</body>
+</html>
